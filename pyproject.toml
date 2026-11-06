@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graphwalk-rag"
+version = "0.1.0"
+description = "Graph RAG that walks: build a provenance-preserving LightRAG graph, store it in NetworkX or Neo4j, and answer multi-hop questions with bidirectional meet-in-the-middle traversal, a document-routed guided walk, or a single-first decomposition router."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Gopal Sharma" }]
+requires-python = ">=3.10"
+dependencies = ["networkx>=3.2", "numpy>=1.26", "openai>=1.40"]
+
+[project.optional-dependencies]
+build = ["lightrag-hku>=1.5.4", "tiktoken>=0.7", "pymupdf>=1.24"]
+local = ["sentence-transformers>=3.0"]
+neo4j = ["neo4j>=5.20"]
+all = ["graphwalk-rag[build,local,neo4j]"]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[project.scripts]
+graphwalk-rag = "graphwalk_rag.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/gopalsharma1615-ai/graphwalk-rag"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
