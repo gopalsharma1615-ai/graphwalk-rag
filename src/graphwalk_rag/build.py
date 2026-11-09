@@ -133,6 +133,7 @@ def _llm_funcs(model: str, embed_model: str, embed_dim: int):
     base_url, api_key = os.environ.get("LLM_BASE_URL"), os.environ.get("LLM_API_KEY") or os.environ.get(
         "OPENAI_API_KEY")
     extra = json.loads(os.environ["LLM_EXTRA_BODY"]) if os.environ.get("LLM_EXTRA_BODY") else None
+    max_out = int(os.environ.get("LLM_MAX_TOKENS", "4096"))
 
     async def complete(prompt, system_prompt=None, history_messages=None, **kw):
         from openai import AsyncOpenAI
@@ -142,9 +143,10 @@ def _llm_funcs(model: str, embed_model: str, embed_dim: int):
         client = AsyncOpenAI(base_url=base_url, api_key=api_key)
         msgs = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + list(
             history_messages or []) + [{"role": "user", "content": prompt}]
-        r = await client.chat.completions.create(model=model, messages=msgs, extra_body=extra,
-                                                 **{k: v for k, v in kw.items() if k in ("temperature",
-                                                                                       "max_tokens")})
+        opts = {k: v for k, v in kw.items() if k in ("temperature", "max_tokens")}
+        # Cap output: without it a looping generation runs to the context limit and blocks a server slot.
+        opts.setdefault("max_tokens", max_out)
+        r = await client.chat.completions.create(model=model, messages=msgs, extra_body=extra, **opts)
         return re.sub(r"<think>.*?</think>\s*", "", r.choices[0].message.content or "", flags=re.DOTALL)
 
     if embed_model.startswith("local:"):
