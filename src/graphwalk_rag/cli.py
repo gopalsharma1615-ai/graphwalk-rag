@@ -31,7 +31,7 @@ def cmd_build(a) -> int:
         types = [x.strip() for x in (t.read_text().splitlines() if t.exists() else a.entity_types.split(","))
                  if x.strip()]
     res = run_build(_files(a.sources), a.workdir, a.model, a.embed_model, a.embed_dim, a.dry_run, types,
-                    a.chunk_tokens)
+                    a.chunk_tokens, a.llm_async, a.llm_timeout)
     print(json.dumps(res, indent=2))
     return 0
 
@@ -114,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--dry-run", action="store_true")
     b.add_argument("--entity-types", help="file with one type per line, or a comma list")
     b.add_argument("--chunk-tokens", type=int, default=1000)
+    b.add_argument("--llm-async", type=int, default=8, help="parallel LLM calls; match vLLM --max-num-seqs")
+    b.add_argument("--llm-timeout", type=int, default=240, help="seconds per LLM call (LightRAG worker limit is 2x)")
     common(b)
     b.set_defaults(fn=cmd_build)
 

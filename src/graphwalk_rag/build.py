@@ -169,7 +169,7 @@ def _llm_funcs(model: str, embed_model: str, embed_dim: int):
 
 
 async def build(workdir: str, docs: list[DocChunks], model: str, embed_model: str, embed_dim: int,
-                entity_types: list[str] | None = None, llm_async: int = 8) -> None:
+                entity_types: list[str] | None = None, llm_async: int = 8, llm_timeout: int = 240) -> None:
     from lightrag import LightRAG
 
     complete, embed = _llm_funcs(model, embed_model, embed_dim)
@@ -177,7 +177,7 @@ async def build(workdir: str, docs: list[DocChunks], model: str, embed_model: st
     if entity_types:
         addon["entity_types_guidance"] = entity_guidance(entity_types)
     rag = LightRAG(working_dir=workdir, llm_model_func=complete, llm_model_name=model, embedding_func=embed,
-                   addon_params=addon, llm_model_max_async=llm_async)
+                   addon_params=addon, llm_model_max_async=llm_async, default_llm_timeout=llm_timeout)
     await rag.initialize_storages()
     try:
         from lightrag.kg.shared_storage import initialize_pipeline_status
@@ -214,11 +214,12 @@ def verify_provenance(workdir: str | Path) -> dict:
 
 
 def run_build(paths: list[Path], workdir: str, model: str, embed_model: str, embed_dim: int, dry_run: bool,
-              entity_types: list[str] | None, max_tokens: int) -> dict:
+              entity_types: list[str] | None, max_tokens: int, llm_async: int = 8, llm_timeout: int = 240) -> dict:
     count = _tok()
     docs = [chunk_document(p, max_tokens, count) for p in paths]
     est = estimate(docs, model, count)
     if dry_run:
         return est
-    asyncio.run(build(workdir, docs, model, embed_model, embed_dim, entity_types))
+    # Match llm_async to the server's concurrency (vLLM --max-num-seqs): queued requests count against the timeout.
+    asyncio.run(build(workdir, docs, model, embed_model, embed_dim, entity_types, llm_async, llm_timeout))
     return {"estimate": est, "provenance": verify_provenance(workdir)}
