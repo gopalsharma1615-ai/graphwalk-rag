@@ -1,7 +1,7 @@
 import numpy as np
 from conftest import vec
 
-from graphwalk_rag.build import DocChunks, chunk_document, estimate
+from graphwalk_rag.build import DocChunks, chunk_document, entity_guidance, estimate
 from graphwalk_rag.paths import coverage, rank_paths, verbalize
 from graphwalk_rag.seeding import answer_candidates, string_seeds
 from graphwalk_rag.store import GraphStore, parse_header
@@ -93,3 +93,8 @@ def test_estimate_uses_unit_costs():
     e = estimate(docs, "gpt-4o-mini", count=lambda s: 1)
     assert e["llm_calls"] == 2730
     assert abs(e["estimated_usd"] - (1000 * 7060 * 0.15 + 1000 * 1144 * 0.60) / 1e6) < 0.01
+
+
+def test_entity_guidance_is_one_prose_block():
+    g = entity_guidance(["Person", "Project", " "])
+    assert isinstance(g, str) and g.endswith("- Person\n- Project") and "Other" in g

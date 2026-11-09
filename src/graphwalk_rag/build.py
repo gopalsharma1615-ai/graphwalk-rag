@@ -119,6 +119,12 @@ def estimate(docs: list[DocChunks], model: str = "gpt-4o-mini", count=None) -> d
             "usd_per_1000_pages": round(1000 * usd / pages, 2) if pages else None}
 
 
+def entity_guidance(entity_types: list[str]) -> str:
+    """LightRAG (>= 1.5) takes entity-type guidance as one prose block, not a list."""
+    lines = "\n".join(f"- {t}" for t in entity_types if t.strip())
+    return ("Classify each entity using one of the following types. If no type fits, use `Other`.\n\n" + lines)
+
+
 def _llm_funcs(model: str, embed_model: str, embed_dim: int):
     """OpenAI-compatible LLM + embedding functions for LightRAG (OpenAI, vLLM, Ollama ...)."""
     import numpy as np
@@ -169,7 +175,7 @@ async def build(workdir: str, docs: list[DocChunks], model: str, embed_model: st
     complete, embed = _llm_funcs(model, embed_model, embed_dim)
     addon = {"language": "English"}
     if entity_types:
-        addon["entity_types_guidance"] = entity_types
+        addon["entity_types_guidance"] = entity_guidance(entity_types)
     rag = LightRAG(working_dir=workdir, llm_model_func=complete, llm_model_name=model, embedding_func=embed,
                    addon_params=addon, llm_model_max_async=llm_async)
     await rag.initialize_storages()
